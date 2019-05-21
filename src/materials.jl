@@ -16,6 +16,8 @@ mutable struct PlainColor <: SurfaceColor
     PlainColor() = new(Vec3(0.0f0))
 end
 
+@treelike PlainColor
+
 @diffops PlainColor
 
 diffusecolor(c::PlainColor, pt::Vec3) = c.color
@@ -31,6 +33,8 @@ mutable struct CheckeredSurface <: SurfaceColor
                                                                       clamp(c2, eltype(T2)(0), eltype(T2)(1)))
     CheckeredSurface() = new(Vec3(0.0f0), Vec3(0.0f0))
 end
+
+@treelike CheckeredSurface
 
 @diffops CheckeredSurface
 
@@ -56,6 +60,8 @@ mutable struct Material{S<:SurfaceColor, R<:Real}
     color::S
     reflection::R
 end
+
+@treelike Material
 
 @diffops Material
 

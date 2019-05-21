@@ -42,6 +42,8 @@ mutable struct Vec3{T<:AbstractArray}
     end
 end    
 
+@treelike Vec3
+
 Vec3(a::T) where {T<:Real} = Vec3([a], [a], [a])
 
 Vec3(a::T) where {T<:AbstractArray} = Vec3(copy(a), copy(a), copy(a))

@@ -1,7 +1,5 @@
 import Base.getproperty
 
-using Zygote: @adjoint, @nograd
-
 import Zygote.literal_getproperty
 
 # We currently do not optimize the Material of the surface

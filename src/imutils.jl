@@ -1,7 +1,5 @@
 export get_image, zeroonenorm
 
-using Zygote: @adjoint
-
 # ---------- #
 # Processing #
 # ---------- #

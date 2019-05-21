@@ -13,6 +13,8 @@ mutable struct Disc{V,T<:Real} <: Object
     material::Material
 end 
 
+@treelike Disc
+
 @diffops Disc
 
 # The next 3 functions are just convenience functions for handling

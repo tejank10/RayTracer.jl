@@ -14,6 +14,8 @@ mutable struct Cylinder{C, R<:Real, L<:Real} <: Object
     material::Material
 end
 
+@treelike Cylinder
+
 @diffops Cylinder
 
 # The next 3 functions are just convenience functions for handling

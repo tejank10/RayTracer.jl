@@ -10,6 +10,8 @@ mutable struct Sphere{C, R<:Real} <: Object
     material::Material
 end
 
+@treelike Sphere
+
 @diffops Sphere
 
 # The next 3 functions are just convenience functions for handling

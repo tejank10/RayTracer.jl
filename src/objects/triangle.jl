@@ -12,6 +12,8 @@ mutable struct Triangle{V} <: Object
     material::Material
 end 
 
+@treelike Triangle
+
 @diffops Triangle
 
 # The next 2 functions are just convenience functions for handling

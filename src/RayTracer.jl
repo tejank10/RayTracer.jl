@@ -1,6 +1,8 @@
 module RayTracer
 
 using Zygote, Flux, Images, FileIO, MeshIO
+using Flux: @treelike
+using Zygote: @adjoint
 
 # Rendering Utilities
 include("utils.jl")

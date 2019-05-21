@@ -10,6 +10,8 @@ struct FixedCameraParams{T} <: FixedParams
     height
 end
 
+@treelike FixedCameraParams
+
 # Incorporate `aperture` later
 mutable struct Camera{T}
     lookfrom::Vec3{T}
@@ -18,12 +20,14 @@ mutable struct Camera{T}
     focus::T
     fixedparams::FixedCameraParams{T}
 end
+
+@treelike Camera
                                        
 @diffops Camera
 
 function Camera(lookfrom, lookat, vup, vfov, focus, width, height)
     fixedparams = FixedCameraParams(vup, width, height)
-	return Camera(lookfrom, lookat, [vfov], [focus], fixedparams)
+    return Camera(lookfrom, lookat, [vfov], [focus], fixedparams)
 end
 
 """
