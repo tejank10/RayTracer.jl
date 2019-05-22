@@ -126,7 +126,7 @@ in `a`.
 The length of each array in `a` must be equal to the number of `true` values in the 
 `cond` array.
 """
-function place(a::Vec3, cond)
+#=function place(a::Vec3, cond)
     r = Vec3(zeros(eltype(a.x), size(cond)...),
              zeros(eltype(a.y), size(cond)...),
              zeros(eltype(a.z), size(cond)...))
@@ -134,9 +134,10 @@ function place(a::Vec3, cond)
     r.y[cond] .= a.y
     r.z[cond] .= a.z
     return r
-end
+end=#
 
-function place(a::Vec3{CuArray{T}}, cond) where {T}
+#function place(a::Vec3{CuArray{T}}, cond) where {T}
+function place(a::Vec3, cond)
     r = Vec3(similar(cond, eltype(a.x)),
              similar(cond, eltype(a.y)),
              similar(cond, eltype(a.z)))
