@@ -40,7 +40,7 @@ function intersect(s::Sphere, origin, direction)
     function get_intersections(x, y)
         t = bigmul(x + y) # Hack to split the 0.0 gradient to both. Otherwise one gets nothing
         if y > 0
-            sqrty = sqrt(y)
+            sqrty = CUDAnative.sqrt(y)
             z1 = -x - sqrty 
             z2 = -x + sqrty
             if z1 <= 0 && z2 > 0

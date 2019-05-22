@@ -1,6 +1,6 @@
 module RayTracer
 
-using Zygote, Flux, Images, FileIO, MeshIO
+using Zygote, Flux, Images, FileIO, MeshIO, CUDAnative
 using Flux: @treelike
 using Zygote: @adjoint
 

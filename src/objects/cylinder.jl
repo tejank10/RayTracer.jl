@@ -60,7 +60,7 @@ function intersect(cy::Cylinder, origin, direction)
     c = l2norm(c_vec) .- (cy.radius ^ 2)
     disc = (b .^ 2) .- 2 .* a .* c
     
-    sq = sqrt.(max.(disc, 0.0f0))
+    sq = CUDAnative.sqrt.(max.(disc, 0.0f0))
     h₀ = (-b .- sq) ./ a
     h₁ = (-b .+ sq) ./ a
     zt1 = dot(origin + direction * h₀, cy.axis)

@@ -20,7 +20,7 @@ function light(s::S, origin, direction, dist, lgt::L, eye_pos,
     seelight = fseelight(obj_num, light_distances)
     
     # Ambient
-    color = rgb(0.05f0)
+    color = rgb(0.05f0) |> gpu
 
     # Lambert Shading (diffuse)
     visibility = max.(dot(normal, dir_light), 0.0f0)
@@ -35,7 +35,7 @@ function light(s::S, origin, direction, dist, lgt::L, eye_pos,
 
     # Blinn-Phong shading (specular)
     phong = dot(normal, normalize(dir_light + dir_origin))
-    color += (rgb(1.0f0) * (clamp.(phong, 0.0f0, 1.0f0) .^ 50)) * seelight
+    color += ((rgb(1.0f0) |> gpu) * (CUDAnative.pow.(clamp.(phong, 0.0f0, 1.0f0), Int32(50)))) * seelight
 
     return color
 end
@@ -47,11 +47,12 @@ function raytrace(origin::Vec3, direction::Vec3, scene::Vector,
     nearest = map(min, distances...)
     h = isnotbigmul.(nearest)
 
-    color = rgb(0.0f0)
+    color = rgb(0.0f0) |> gpu
 
     for (i, (s, d)) in enumerate(zip(scene, distances))
         hit = hashit.(h, d, nearest)
         if sum(hit) != 0
+            # extract has a performance penalty on gpu
             dc = extract(hit, d)
             originc = extract(hit, origin)
             dirc = extract(hit, direction)

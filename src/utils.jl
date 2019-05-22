@@ -118,6 +118,31 @@ function place(a::Vec3, cond)
     return r
 end
 
+function place(a::Vec3{CuArray{T}}, cond) where {T}
+    r = Vec3(similar(cond, eltype(a.x)),
+             similar(cond, eltype(a.y)),
+             similar(cond, eltype(a.z)))
+    fill!(r.x, zero(eltype(r.x)))
+    fill!(r.y, zero(eltype(r.y)))
+    fill!(r.z, zero(eltype(r.z)))
+    n = length(cond)
+    num_threads = min(n, 256)
+    num_blocks = ceil(Int, n / num_threads)
+    idx = cumsum(cond)
+    @cuda blocks=num_blocks threads=num_threads kernel_place!(r.x, r.y, r.z, a.x, a.y, a.z, cond, idx)
+    return r
+end
+
+function kernel_place!(a1, a2, a3, b1, b2, b3, c, x)
+    i = (blockIdx().x-1) * blockDim().x + threadIdx().x
+    if i < length(c) && c[i]
+        a1[i] = b1[x[i]]
+        a2[i] = b2[x[i]]
+        a3[i] = b3[x[i]]
+    end
+    return nothing
+end
+
 Base.clamp(v::Vec3, lo, hi) = Vec3(clamp.(v.x, lo, hi), clamp.(v.y, lo, hi), clamp.(v.z, lo, hi))
 
 for f in (:zero, :similar, :one)
