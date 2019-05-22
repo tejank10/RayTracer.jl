@@ -76,6 +76,18 @@ for op in (:+, :*, :-, :/, :%)
     end
 end
 
+# These hacks have performance pitfalls
+# Hack to allow backward pass on GPU
+@inline -(a::Vec3{CuArray}, b::Vec3{CuArray}) = a + (-b)
+
+@inline -(a::Vec3{CuArray}, b) = a + (-b)
+
+@inline -(a, b::Vec3{CuArray}) = a + (-b)
+
+# Writing the following as (-a.x, -a.y, -a.z) breaks gradient computation
+# when using CuArrays
+@inline -(a::Vec3{CuArray}) = a * -1
+
 @inline -(a::Vec3) = Vec3(-a.x, -a.y, -a.z)
 
 @inline function dot(a::Vec3, b::Vec3)
@@ -88,9 +100,15 @@ end
 
 @inline normalize(a::Vec3) = a / sqrt.(l2norm(a))
 
+@inline normalize(a::Vec3{CuArray}) = a / CUDAnative.sqrt.(l2norm(a))
+
 @inline cross(a::Vec3, b::Vec3) =
     Vec3(a.y .* b.z .- a.z .* b.y, a.z .* b.x .- a.x .* b.z,
          a.x .* b.y .- a.y .* b.x)
+
+@inline cross(a::Vec3{CuArray}, b::Vec3{CuArray}) =
+    Vec3(a.y .* b.z .+ (a.z .* b.y) * -1, a.z .* b.x .+ (a.x .* b.z) * -1,
+         a.x .* b.y .+ (a.y .* b.x) * -1)    
 
 @inline maximum(v::Vec3) = max(maximum(v.x), maximum(v.y), maximum(v.z))
 
