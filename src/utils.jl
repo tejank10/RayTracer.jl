@@ -1,4 +1,4 @@
-import Base: +, *, -, /, %, intersect, minimum, maximum
+import Base: +, *, -, /, %, intersect, minimum, maximum, size, getindex
 
 export Vec3, rgb, clip01
 
@@ -7,15 +7,14 @@ export Vec3, rgb, clip01
 # -------- #
 
 """
-    Vec3
-
 This is the central type for RayTracer. All of the other types are defined building
 upon this.                                                      
 
 All the fields of the Vec3 instance contains `Array`s. This ensures that we can collect
 the gradients w.r.t the fields using the `Params` API of Zygote.
 
-Defined Operations for Vec3:
+### Defined Operations for Vec3:
+
 * `+`, `-`, `*` -- These operations will be broadcasted even though there is no explicit
                    mention of broadcasting.
 * `dot`, `l2norm`
@@ -24,6 +23,7 @@ Defined Operations for Vec3:
 * `zero`, `similar`, `one`
 * `place`
 * `maximum`, `minimum`
+* `size`
 """
 mutable struct Vec3{T<:AbstractArray}
     x::T
@@ -49,6 +49,19 @@ Vec3(a::T) where {T<:Real} = Vec3([a], [a], [a])
 Vec3(a::T) where {T<:AbstractArray} = Vec3(copy(a), copy(a), copy(a))
 
 Vec3(a::T, b::T, c::T) where {T<:Real} = Vec3([a], [b], [c])
+
+function show(io::IO, v::Vec3)
+    l = size(v)[1]
+    if l == 1
+        print(io, "x = ", v.x[], ", y = ", v.y[], ", z = ", v.z[])
+    elseif l <= 5
+        print(io, "Vec3 Object\n    Length = ", l, "\n    x = ", v.x,
+              "\n    y = ", v.y, "\n    z = ", v.z)
+    else
+        print(io, "Vec3 Object\n    Length = ", l, "\n    x = ", v.x[1:5],
+              "...\n    y = ", v.y[1:5], "...\n    z = ", v.z[1:5], "...")
+    end
+end
 
 for op in (:+, :*, :-)
     @eval begin
@@ -90,15 +103,15 @@ end
 
 @inline -(a::Vec3) = Vec3(-a.x, -a.y, -a.z)
 
-@inline function dot(a::Vec3, b::Vec3)
-    result = a.x .* b.x .+ a.y .* b.y .+ a.z .* b.z
-    # Change the nothing's to 0's
-    return Zygote.hook(t -> isnothing(t) ? zero(a.x) : map(i -> isnothing(i) ? zero(eltype(a.x)) : i, t), result)
-end
+@inline dot(a::Vec3, b::Vec3) = a.x .* b.x .+ a.y .* b.y .+ a.z .* b.z
 
 @inline l2norm(a::Vec3) = dot(a, a)
 
-@inline normalize(a::Vec3) = a / sqrt.(l2norm(a))
+@inline function normalize(a::Vec3)
+    l2 = l2norm(a)
+    l2 = map(x -> x == 0 ? typeof(x)(1) : x, l2)
+    return (a / sqrt.(l2))
+end
 
 @inline normalize(a::Vec3{CuArray}) = a / CUDAnative.sqrt.(l2norm(a))
 
@@ -115,6 +128,10 @@ end
 @inline minimum(v::Vec3) = min(minimum(v.x), minimum(v.y), minimum(v.z))
 
 @inline clip01(v::Vec3) = (v - minimum(v)) / maximum(v)
+
+@inline size(v::Vec3) = size(v.x)
+
+@inline getindex(v::Vec3, idx) = (x = v.x[idx], y = v.y[idx], z = v.z[idx])
 
 """
     place(a::Vec3, cond)
@@ -192,7 +209,11 @@ rgb = Vec3
 Extracts the elements of `x` (in case it is an array) for which the indices corresponding to the `cond`
 are `true`.
 
-Example:
+!!! note
+    `extract` has a performance penalty when used on GPUs.
+
+### Example:
+
 ```julia
 julia> a = rand(4)
 4-element Array{Float64,1}:
@@ -230,10 +251,6 @@ the gradient to be `0` instead of `nothing` as in case of typemax.
 """
 @inline bigmul(x) = typemax(x)
 
-@inline isnotbigmul(x) = bigmul(x) != x
-
-@inline hashit(h, d, n) = h * (d == n)
-
 # ----------------- #
 # - Helper Macros - #
 # ----------------- #
@@ -244,11 +261,11 @@ the gradient to be `0` instead of `nothing` as in case of typemax.
 Generates functions for performing gradient based optimizations on this custom type.
 5 functions are generated.
 
-1. x::MyType + y::MyType -- For Gradient Accumulation
-2. x::MyType - y::MyType -- For Gradient Based Updates
-3. x::MyType * η<:Real   -- For Multiplication of the Learning Rate with Gradient
-4. η<:Real   * x::MyType -- For Multiplication of the Learning Rate with Gradient
-5. x::MyType * y::MyType -- Just for the sake of completeness.
+1. `x::MyType + y::MyType` -- For Gradient Accumulation
+2. `x::MyType - y::MyType` -- For Gradient Based Updates
+3. `x::MyType * η<:Real  ` -- For Multiplication of the Learning Rate with Gradient
+4. `η<:Real   * x::MyType` -- For Multiplication of the Learning Rate with Gradient
+5. `x::MyType * y::MyType` -- Just for the sake of completeness.
 
 Most of these functions do not make semantic sense. For example, adding 2 `PointLight`
 instances do not make sense but in case both of them are gradients, it makes perfect
@@ -281,4 +298,22 @@ end
 # Fixed Parameters #
 # ---------------- #
 
+"""
+    FixedParams
+
+Any subtype of FixedParams is not optimized using the `update!` API. For example,
+we don't want the screen size to be altered while inverse rendering, this is
+ensured by wrapping those parameters in a subtype of FixedParams.
+"""
 abstract type FixedParams; end
+
+for op in (:+, :*, :-, :/, :%)
+    @eval begin
+        @inline $(op)(a::FixedParams, b::FixedParams) = a
+
+        @inline $(op)(a::FixedParams, b) = a
+
+        @inline $(op)(a, b::FixedParams) = b
+    end
+end
+
