@@ -113,9 +113,13 @@ end
     return (a / sqrt.(l2))
 end
 
-@inline normalize(a::Vec3{CuArray}) = a / CUDAnative.sqrt.(l2norm(a))
+@inline function normalize(a::Vec3{CuArray})
+    l2 = l2norm(a)
+    l2 = map(x -> x == 0 ? typeof(x)(1) : x, l2) |> gpu
+    return a / CUDAnative.sqrt.(l2)
+end
 
-@inline cross(a::Vec3, b::Vec3) =
+@inline cross(a::Vec3{T}, b::Vec3{T}) where {T} =
     Vec3(a.y .* b.z .- a.z .* b.y, a.z .* b.x .- a.x .* b.z,
          a.x .* b.y .- a.y .* b.x)
 
