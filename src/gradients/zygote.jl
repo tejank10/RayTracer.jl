@@ -1,10 +1,9 @@
 import Base.getproperty
 import Base.findmin
 import Base.findmax
+import Base.push!
 
 import Zygote.literal_getproperty
-
-# We currently do not optimize the Material of the surface
 
 # ---- #
 # Vec3 #
@@ -15,20 +14,14 @@ import Zygote.literal_getproperty
 
 @adjoint Vec3(a, b, c) = Vec3(a, b, c), Δ -> (Δ.x, Δ.y, Δ.z)
 
-@adjoint function literal_getproperty(v::Vec3, ::Val{f}) where {f}
-    return getproperty(v, f), function (Δ)
-        z = zero(Δ)
-        if f == :x
-            return (Vec3(Δ, z, z), nothing)
-        elseif f == :y
-            return (Vec3(z, Δ, z), nothing)
-        elseif f == :z
-            return (Vec3(z, z, Δ), nothing)
-        else
-            error("Undefined Field Name")
-        end
-    end
-end
+@adjoint literal_getproperty(v::Vec3, ::Val{:x}) =
+    getproperty(v, :x), Δ -> (Vec3(Δ, zero(v.y), zero(v.z)), nothing)
+
+@adjoint literal_getproperty(v::Vec3, ::Val{:y}) =
+    getproperty(v, :y), Δ -> (Vec3(zero(v.x), Δ, zero(v.z)), nothing)
+
+@adjoint literal_getproperty(v::Vec3, ::Val{:z}) =
+    getproperty(v, :z), Δ -> (Vec3(zero(v.x), zero(v.y), Δ), nothing)
 
 @adjoint function dot(a::Vec3, b::Vec3)	
     dot(a, b), Δ -> begin	
@@ -81,6 +74,10 @@ end
 
 @adjoint place(a::Vec3, cond) = place(a, cond), Δ -> (Vec3(Δ.x[cond], Δ.y[cond], Δ.z[cond]), nothing)
 
+@adjoint place(a::Array, cond) = place(a, cond), Δ -> (Δ[cond], nothing)
+
+@adjoint place_idx!(a::Vec3, b::Vec3, idx) = place_idx!(a, b, idx), Δ -> (zero(Δ), Vec3(Δ[idx]...), nothing)
+
 # ----- #
 # Light #
 # ----- #
@@ -92,14 +89,14 @@ end
 @adjoint PointLight(color::Vec3, intensity, pos::Vec3) =
     PointLight(color, intensity, pos), Δ -> (Δ.color, Δ.intensity, Δ.position)
 
-@adjoint literal_getproperty(p::PointLight{I}, ::Val{:color}) where {I} =
-    getproperty(p, :color), Δ -> (PointLight(Δ, [zero(eltype(I))], zero(p.position)), nothing)
+@adjoint literal_getproperty(p::PointLight, ::Val{:color}) =
+    getproperty(p, :color), Δ -> (PointLight(Δ, zero(p.intensity), zero(p.position)), nothing)
 
 @adjoint literal_getproperty(p::PointLight, ::Val{:intensity}) =
     getproperty(p, :intensity), Δ -> (PointLight(zero(p.color), Δ, zero(p.position)), nothing)
 
-@adjoint literal_getproperty(p::PointLight{I}, ::Val{:position}) where {I} =
-    getproperty(p, :position), Δ -> (PointLight(zero(p.color), [zero(eltype(I))], Δ), nothing)
+@adjoint literal_getproperty(p::PointLight, ::Val{:position}) =
+    getproperty(p, :position), Δ -> (PointLight(zero(p.color), zero(p.intensity), Δ), nothing)
 
 # ---------------- #
 # - DistantLight - #
@@ -108,60 +105,109 @@ end
 @adjoint DistantLight(color::Vec3, intensity, direction::Vec3) =
     DistantLight(color, intensity, direction), Δ -> (Δ.color, Δ.intensity, Δ.direction)
 
-@adjoint literal_getproperty(d::DistantLight{I}, ::Val{:color}) where {I} =
-    getproperty(d, :color), Δ -> (DistantLight(Δ, [zero(eltype(I))], zero(d.direction)), nothing)
+@adjoint literal_getproperty(d::DistantLight, ::Val{:color}) =
+    getproperty(d, :color), Δ -> (DistantLight(Δ, zero(d.intensity), zero(d.direction)), nothing)
 
 @adjoint literal_getproperty(d::DistantLight, ::Val{:intensity}) =
     getproperty(d, :intensity), Δ -> (DistantLight(zero(d.color), Δ, zero(d.direction)), nothing)
 
-@adjoint literal_getproperty(d::DistantLight{I}, ::Val{:direction}) where {I} =
-    getproperty(d, :direction), Δ -> (DistantLight(zero(d.color), [zero(eltype(I))], Δ), nothing)
-
-# ------------ #
-# SurfaceColor #
-# ------------ #
-
-# -------------- #
-# - PlainColor - #
-# -------------- #
-
-@adjoint PlainColor(color::Vec3) = PlainColor(color), Δ -> (Δ.color,)
-    
-@adjoint literal_getproperty(c::PlainColor, ::Val{f}) where {f} =
-    getproperty(c, f), Δ -> (PlainColor(Δ), nothing)
-
-# ------------------ #
-# - CheckeredColor - #
-# ------------------ #
-
-@adjoint CheckeredSurface(color1::Vec3, color2::Vec3) =
-    CheckeredSurface(color1, color2), Δ -> (Δ.color1, Δ.color2)
-    
-@adjoint literal_getproperty(c::CheckeredSurface, ::Val{f}) where {f} =
-    getproperty(c, f), Δ -> begin
-        if f == :color1
-            return (CheckeredSurface(Δ, zero(c.color2)), nothing)
-        else
-            return (CheckeredSurface(zero(c.color1), Δ), nothing)
-        end
-    end
+@adjoint literal_getproperty(d::DistantLight, ::Val{:direction}) =
+    getproperty(d, :direction), Δ -> (DistantLight(zero(d.color), zero(d.intensity), Δ), nothing)
 
 # -------- #
 # Material #
 # -------- #
 
-@adjoint Material(col::S, reflection::R) where {S<:SurfaceColor, R<:Real} =
-    Material(col, reflection), Δ -> (Δ.color, Δ.reflection)
+@adjoint Material(color_ambient, color_diffuse, color_specular, specular_exponent,
+                  reflection, texture_ambient, texture_diffuse, texture_specular,
+                  uv_coordinates) =
+    Material(color_ambient, color_diffuse, color_specular, specular_exponent, reflection,
+             texture_ambient, texture_diffuse, texture_specular, uv_coordinates),
+    Δ -> (Δ.color_ambient, Δ.color_diffuse, Δ.color_specular, Δ.specular_exponent,
+          Δ.reflection, Δ.texture_ambient, Δ.texture_diffuse, Δ.texture_specular,
+          Δ.uv_coordinates)
 
-@adjoint literal_getproperty(m::Material{S, R}, ::Val{f}) where {S, R, f} =
-    getproperty(m, f), Δ -> begin
-        if f == :color
-            return (Material(Δ, R(0)), nothing)
-        else
-            return (Material(PlainColor(), Δ), nothing) # PlainColor is the zero for SurfaceColor
-        end
-    end
+@adjoint literal_getproperty(m::Material, ::Val{:color_ambient}) =
+    getproperty(m, :color_ambient), Δ -> (Material(Δ, zero(m.color_diffuse), zero(m.color_specular),
+                                                   zero(m.specular_exponent), zero(m.reflection),
+                                                   isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient),
+                                                   isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse),
+                                                   isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                   isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                          nothing)
 
+@adjoint literal_getproperty(m::Material, ::Val{:color_diffuse}) =
+    getproperty(m, :color_diffuse), Δ -> (Material(zero(m.color_ambient), Δ, zero(m.color_specular),
+                                                   zero(m.specular_exponent), zero(m.reflection),
+                                                   isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient),
+                                                   isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse),
+                                                   isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                   isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                          nothing)
+
+@adjoint literal_getproperty(m::Material, ::Val{:color_specular}) =
+    getproperty(m, :color_specular), Δ -> (Material(zero(m.color_ambient), zero(m.color_diffuse), Δ,
+                                                   zero(m.specular_exponent), zero(m.reflection),
+                                                   isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient),
+                                                   isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse),
+                                                   isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                   isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                          nothing)
+    
+@adjoint literal_getproperty(m::Material, ::Val{:specular_exponent}) =
+    getproperty(m, :specular_exponent), Δ -> (Material(zero(m.color_ambient), zero(m.color_diffuse),
+                                                       zero(m.color_specular), Δ, zero(m.reflection),
+                                                       isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient),
+                                                       isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse),
+                                                       isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                       isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                              nothing)
+
+@adjoint literal_getproperty(m::Material, ::Val{:reflection}) =
+    getproperty(m, :reflection), Δ -> (Material(zero(m.color_ambient), zero(m.color_diffuse),
+                                                zero(m.color_specular), zero(m.specular_exponent), Δ,
+                                                isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient),
+                                                isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse),
+                                                isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                       nothing)
+
+@adjoint literal_getproperty(m::Material, ::Val{:texture_ambient}) =
+    getproperty(m, :texture_ambient), Δ -> (Material(zero(m.color_ambient), zero(m.color_diffuse),
+                                                     zero(m.color_specular), zero(m.specular_exponent),
+                                                     zero(m.reflection), Δ,
+                                                     isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse),
+                                                     isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                     isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                            nothing)
+
+@adjoint literal_getproperty(m::Material, ::Val{:texture_diffuse}) =
+    getproperty(m, :texture_diffuse), Δ -> (Material(zero(m.color_ambient), zero(m.color_diffuse),
+                                                     zero(m.color_specular), zero(m.specular_exponent),
+                                                     zero(m.reflection),
+                                                     isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient), Δ,
+                                                     isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                     isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                            nothing)
+
+@adjoint literal_getproperty(m::Material, ::Val{:texture_specular}) =
+    getproperty(m, :texture_specular), Δ -> (Material(zero(m.color_ambient), zero(m.color_diffuse),
+                                                      zero(m.color_specular), zero(m.specular_exponent),
+                                                      zero(m.reflection),
+                                                      isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient),
+                                                      isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse), Δ,
+                                                      isnothing(m.uv_coordinates) ? nothing : zero.(m.uv_coordinates)),
+                                             nothing)
+
+@adjoint literal_getproperty(m::Material, ::Val{:uv_coordinates}) =
+    getproperty(m, :uv_coordinates), Δ -> (Material(zero(m.color_ambient), zero(m.color_diffuse),
+                                                    zero(m.color_specular), zero(m.specular_exponent),
+                                                    zero(m.reflection),
+                                                    isnothing(m.texture_ambient) ? nothing : zero(m.texture_ambient),
+                                                    isnothing(m.texture_diffuse) ? nothing : zero(m.texture_diffuse),
+                                                    isnothing(m.texture_specular) ? nothing : zero(m.texture_specular),
+                                                    Δ),
+                                             nothing)
 # ------- #
 # Objects #
 # ------- #
@@ -173,44 +219,39 @@ end
 @adjoint Sphere(center, radius, material::Material) =
     Sphere(center, radius, material), Δ -> (Δ.sphere, Δ.radius, Δ.material)
 
-@adjoint literal_getproperty(s::Sphere, ::Val{f}) where {f} =
-    getproperty(s, f), Δ -> (Sphere(Δ), nothing)
+@adjoint literal_getproperty(s::Sphere, ::Val{:center}) =
+    getproperty(s, :center), Δ -> (Sphere(Δ, zero(s.radius), zero(s.material)), nothing)
 
-# ------------ #
-# - Cylinder - #
-# ------------ #
+@adjoint literal_getproperty(s::Sphere, ::Val{:radius}) =
+    getproperty(s, :radius), Δ -> (Sphere(zero(s.center), Δ, zero(s.material)), nothing)
 
-@adjoint Cylinder(center, radius, axis, length, material::Material) =
-    Cylinder(center, radius, axis, length, material),
-    Δ -> (Δ.center, Δ.radius, Δ.axis, Δ.length, Δ.material)
-
-@adjoint literal_getproperty(c::Cylinder, ::Val{f}) where {f} =
-    getproperty(c, f), Δ -> (Cylinder(Δ, f), nothing)
-
+@adjoint literal_getproperty(s::Sphere, ::Val{:material}) =
+    getproperty(s, :material), Δ -> (Sphere(zero(s.center), zero(s.radius), Δ), nothing)
+    
 # ------------ #
 # - Triangle - #
 # ------------ #
-
+  
 @adjoint Triangle(v1, v2, v3, material::Material) =
     Triangle(v1, v2, v3, material), Δ -> (Δ.v1, Δ.v2, Δ.v3, Δ.material)
 
-@adjoint literal_getproperty(t::Triangle, ::Val{f}) where {f} =
-    getproperty(t, f), Δ -> (Triangle(Δ, f), nothing)
+@adjoint literal_getproperty(t::Triangle, ::Val{:v1}) =
+    getproperty(t, :v1), Δ -> (Triangle(Δ, zero(t.v2), zero(t.v3), zero(t.material)), nothing)
 
-# -------- #
-# - Disc - #
-# -------- #
+@adjoint literal_getproperty(t::Triangle, ::Val{:v2}) =
+    getproperty(t, :v2), Δ -> (Triangle(zero(t.v1), Δ, zero(t.v3), zero(t.material)), nothing)
 
-@adjoint Disc(c, n, r, material::Material) =
-    Disc(c, n, r, material), Δ -> (Δ.center, Δ.normal, Δ.radius, Δ.material)
+@adjoint literal_getproperty(t::Triangle, ::Val{:v3}) =
+    getproperty(t, :v3), Δ -> (Triangle(zero(t.v1), zero(t.v2), Δ, zero(t.material)), nothing)
 
-@adjoint literal_getproperty(t::Disc, ::Val{f}) where {f} =
-    getproperty(t, f), Δ -> (Disc(Δ, f), nothing)
+@adjoint literal_getproperty(t::Triangle, ::Val{:material}) =
+    getproperty(t, :material), Δ -> (Triangle(zero(t.v1), zero(t.v2), zero(t.v3), Δ), nothing)
 
 # ---------------- #
 # - TriangleMesh - #
 # ---------------- #
 
+#=
 @adjoint TriangleMesh(tm, mat, ftmp) =
     TriangleMesh(tm, mat, ftmp), Δ -> (Δ.triangulated_mesh, Δ.material, Δ.ftmp)
 
@@ -242,48 +283,41 @@ end
 # as they are consistent with the types
 @adjoint literal_getproperty(ftmp::FixedTriangleMeshParams, ::Val{f}) where {f} =
     getproperty(ftmp, f), Δ -> (FixedTriangleMeshParams(IdDict(), ftmp.normals[1:1]))
+=#
 
 # ------ #
 # Camera #
 # ------ #
 
 @adjoint Camera(lf, la, vfov, focus, fp) =
-    Camera(lf, la, vfov, focus, fp), Δ -> (Δ.lookfrom, Δ.lookat, Δ.vfov, Δ.focus, Δ.fixedparams)
+    Camera(lf, la, vfov, focus, fp), Δ -> (Δ.lookfrom, Δ.lookat, Δ.vfov,
+                                           Δ.focus, Δ.fixedparams)
 
-@adjoint function literal_getproperty(c::Camera{T}, ::Val{:lookfrom}) where {T}
-    z = zero(eltype(T))
-    getproperty(c, :lookfrom), Δ -> (Camera(Δ, Vec3(z), [z], [z],
-                                            FixedCameraParams(Vec3(z), 0, 0)), nothing)
-end
+@adjoint literal_getproperty(c::Camera, ::Val{:lookfrom}) =
+    getproperty(c, :lookfrom), Δ -> (Camera(Δ, zero(c.lookat), zero(c.vfov), zero(c.focus),
+                                            zero(c.fixedparams)), nothing)
 
-@adjoint function literal_getproperty(c::Camera{T}, ::Val{:lookat}) where {T}
-    z = zero(eltype(T))
-    getproperty(c, :lookat), Δ -> (Camera(Vec3(z), Δ, [z], [z],
-                                          FixedCameraParams(Vec3(z), 0, 0)), nothing)
-end
+@adjoint literal_getproperty(c::Camera, ::Val{:lookat}) =
+    getproperty(c, :lookat), Δ -> (Camera(zero(c.lookfrom), Δ, zero(c.vfov), zero(c.focus),
+                                          zero(c.fixedparams)), nothing)
 
-@adjoint function literal_getproperty(c::Camera{T}, ::Val{:vfov}) where {T}
-    z = zero(eltype(T))
-    getproperty(c, :vfov), Δ -> (Camera(Vec3(z), Vec3(z), Δ, [z],
-                                        FixedCameraParams(Vec3(z), 0, 0)), nothing)
-end
+@adjoint literal_getproperty(c::Camera, ::Val{:vfov}) =
+    getproperty(c, :vfov), Δ -> (Camera(zero(c.lookfrom), zero(c.lookat), Δ, zero(c.focus),
+                                        zero(c.fixedparams)), nothing)
 
-@adjoint function literal_getproperty(c::Camera{T}, ::Val{:focus}) where {T}
-    z = zero(eltype(T))
-    getproperty(c, :focus), Δ -> (Camera(Vec3(z), Vec3(z), [z], Δ,
-                                         FixedCameraParams(Vec3(z), 0, 0)), nothing)
-end
+@adjoint literal_getproperty(c::Camera, ::Val{:focus}) =
+    getproperty(c, :focus), Δ -> (Camera(zero(c.lookfrom), zero(c.lookat), zero(c.vfov), Δ,
+                                         zero(c.fixedparams)), nothing)                     
 
-@adjoint function literal_getproperty(c::Camera{T}, ::Val{:fixedparams}) where {T}
-    z = zero(eltype(T))
-    getproperty(c, :fixedparams), Δ -> (Camera(Vec3(z), Vec3(z), [z], [z], Δ), nothing)
-end
+@adjoint literal_getproperty(c::Camera, ::Val{:fixedparams}) =
+    getproperty(c, :fixedparams), Δ -> (Camera(zero(c.lookfrom), zero(c.lookat), zero(c.vfov),
+                                               zero(c.focus), Δ), nothing)                     
 
 @adjoint FixedCameraParams(vup, w, h) =
     FixedCameraParams(vup, w, h), Δ -> (Δ.vup, Δ.width, Δ.height)
 
-@adjoint literal_getproperty(fcp::FixedCameraParams{T}, ::Val{f}) where {T, f} =
-    getproperty(fcp, f), Δ -> (FixedCameraParams(Vec3(zero(eltype(T))), 0, 0), nothing)
+@adjoint literal_getproperty(fcp::FixedCameraParams, ::Val{f}) where {f} =
+    getproperty(fcp, f), Δ -> (zero(fcp), nothing)
   
 # ------- #	
 # ImUtils #	
@@ -323,5 +357,12 @@ for func in (:findmin, :findmax)
     end
 end
 
-@adjoint reducehcat(x) =
-    reduce(hcat, x), Δ -> ([Δ[:, i] for i in 1:length(x)], )
+@adjoint reducehcat(x) = reduce(hcat, x), Δ -> ([Δ[:, i] for i in 1:length(x)], )
+
+@adjoint push!(arr, val) = push!(arr, val), Δ -> (Δ[1:end-1], Δ[end])
+
+@nograd fill
+
+@nograd function update_index!(arr, i, j, val)
+    arr[i, j] = val
+end 

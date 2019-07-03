@@ -12,8 +12,8 @@ internal usage and should in no case be called by the user. This function is
 quite general and supports user defined **Objects**. For support of custom
 Objects have a look at the examples.
 """
-function light(s::S, origin, direction, dist, lgt::L, eye_pos,
-               scene, obj_num, bounce) where {S<:Object, L<:Light}
+function light(s::Object, origin, direction, dist, lgt::Light, eye_pos,
+               scene, obj_num, bounce)
     pt = origin + direction * dist
     normal = get_normal(s, pt, direction)
     dir_light, intensity = get_shading_info(lgt, pt)
@@ -25,22 +25,22 @@ function light(s::S, origin, direction, dist, lgt::L, eye_pos,
     seelight = fseelight(obj_num, light_distances)
 
     # Ambient
-    color = Vec3(0.05f0) |> gpu
+    color = get_color(s, pt, Val(:ambient)) |> gpu
 
     # Lambert Shading (diffuse)
     visibility = max.(dot(normal, dir_light), 0.0f0)
-    color += ((diffusecolor(s, pt) * intensity) * visibility) * seelight
+    color += ((get_color(s, pt, Val(:diffuse)) |> gpu * intensity) * visibility) * seelight
     
     # Reflection
     if bounce < 2
         rayD = normalize(direction - normal * 2.0f0 * dot(direction, normal))
-        color += raytrace(nudged, rayD, scene, lgt, eye_pos, bounce + 1) *
-                 s.material.reflection
+        color += raytrace(nudged, rayD, scene, lgt, eye_pos, bounce + 1) * reflection(s)
     end
 
     # Blinn-Phong shading (specular)
     phong = dot(normal, normalize(dir_light + dir_origin))
-    color += ((Vec3(1.0f0) |> gpu) * (CUDAnative.pow.(clamp.(phong, 0.0f0, 1.0f0), Int32(50)))) * seelight
+    color += ((get_color(s, pt, Val(:specular)) |> gpu) *
+              (clamp.(phong, 0.0f0, 1.0f0) .^ specular_exponent(s))) * seelight
 
     return color
 end
@@ -95,7 +95,7 @@ end
 #        a light vector in the `light` function itself.
 function raytrace(origin::Vec3, direction::Vec3, scene::Vector,
                   lgt::Vector{L}, eye_pos::Vec3, bounce::Int = 0) where {L<:Light}
-    colors = pmap(x -> raytrace(origin, direction, scene, x, eye_pos, 0), lgt)
+    colors = pmap(x -> raytrace(origin, direction, scene, x, eye_pos, bounce), lgt)
     return sum(colors)
 end
 

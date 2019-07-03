@@ -25,7 +25,7 @@ the gradients w.r.t the fields using the `Params` API of Zygote.
 * `maximum`, `minimum`
 * `size`
 """
-mutable struct Vec3{T<:AbstractArray}
+struct Vec3{T<:AbstractArray}
     x::T
     y::T
     z::T
@@ -51,7 +51,7 @@ Vec3(a::T) where {T<:AbstractArray} = Vec3(copy(a), copy(a), copy(a))
 Vec3(a::T, b::T, c::T) where {T<:Real} = Vec3([a], [b], [c])
 
 function show(io::IO, v::Vec3)
-    l = size(v)[1]
+    l = prod(size(v))
     if l == 1
         print(io, "x = ", v.x[], ", y = ", v.y[], ", z = ", v.z[])
     elseif l <= 5
@@ -135,7 +135,7 @@ end
 
 @inline size(v::Vec3) = size(v.x)
 
-@inline getindex(v::Vec3, idx) = (x = v.x[idx], y = v.y[idx], z = v.z[idx])
+@inline getindex(v::Vec3, idx...) = (x = v.x[idx...], y = v.y[idx...], z = v.z[idx...])
 
 """
     place(a::Vec3, cond)
@@ -183,6 +183,19 @@ function kernel_place!(a1, a2, a3, b1, b2, b3, c, x)
     return nothing
 end
 
+function place(a::Array, cond)
+    r = zeros(eltype(a), size(cond)...)
+    r[cond] .= a
+    return r
+end
+
+function place_idx!(a::Vec3, b::Vec3, idx)
+    a.x[idx] .= b.x
+    a.y[idx] .= b.y
+    a.z[idx] .= b.z
+    return a
+end
+
 Base.clamp(v::Vec3, lo, hi) = Vec3(clamp.(v.x, lo, hi), clamp.(v.y, lo, hi), clamp.(v.z, lo, hi))
 
 for f in (:zero, :similar, :one)
@@ -190,7 +203,6 @@ for f in (:zero, :similar, :one)
         Base.$(f)(v::Vec3) = Vec3($(f)(v.x), $(f)(v.y), $(f)(v.z))
     end
 end
-
 
 # ----- #
 # Color #
@@ -279,21 +291,26 @@ macro diffops(a)
     quote
         # Addition for gradient accumulation
         function $(esc(:+))(x::$(esc(a)), y::$(esc(a)))
-            return $(esc(a))([getfield(x, i) + getfield(y, i) for i in fieldnames($(esc(a)))]...)
+            return $(esc(a))([(isnothing(getfield(x, i)) || isnothing(getfield(y, i))) ? nothing :
+                              getfield(x, i) + getfield(y, i) for i in fieldnames($(esc(a)))]...)
         end
         # Subtraction for gradient updates
         function $(esc(:-))(x::$(esc(a)), y::$(esc(a)))
-            return $(esc(a))([getfield(x, i) - getfield(y, i) for i in fieldnames($(esc(a)))]...)
+            return $(esc(a))([(isnothing(getfield(x, i)) || isnothing(getfield(y, i))) ? nothing :
+                              getfield(x, i) - getfield(y, i) for i in fieldnames($(esc(a)))]...)
         end
         # Multiply for learning rate and misc ops
         function $(esc(:*))(x::T, y::$(esc(a))) where {T<:Real}
-            return $(esc(a))([x * getfield(y, i) for i in fieldnames($(esc(a)))]...)
+            return $(esc(a))([isnothing(getfield(y, i)) ? nothing :
+                              x * getfield(y, i) for i in fieldnames($(esc(a)))]...)
         end
         function $(esc(:*))(x::$(esc(a)), y::T) where {T<:Real}
-            return $(esc(a))([getfield(x, i) * y for i in fieldnames($(esc(a)))]...)
+            return $(esc(a))([isnothing(getfield(x, i)) ? nothing :
+                              getfield(x, i) * y for i in fieldnames($(esc(a)))]...)
         end
         function $(esc(:*))(x::$(esc(a)), y::$(esc(a)))
-            return $(esc(a))([getfield(x, i) * getfield(y, i) for i in fieldnames($(esc(a)))]...)
+            return $(esc(a))([(isnothing(getfield(x, i)) || isnothing(getfield(y, i))) ? nothing :
+                              getfield(x, i) * getfield(y, i) for i in fieldnames($(esc(a)))]...)
         end
     end
 end
@@ -320,4 +337,3 @@ for op in (:+, :*, :-, :/, :%)
         @inline $(op)(a, b::FixedParams) = b
     end
 end
-

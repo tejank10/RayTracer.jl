@@ -1,13 +1,9 @@
 module RayTracer
 
-<<<<<<< HEAD
-using Zygote, Flux, Images, FileIO, MeshIO, CUDAnative, CuArrays
+using Zygote, Flux, Images, Distributed, CUDAnative, CuArrays
 using Flux: @treelike
 using Zygote: @adjoint
-=======
-using Zygote, Flux, Images
 import Base.show
->>>>>>> e61147c1abbb0eb010d3b5954a49c81fef7abc0a
 
 # Rendering Utilities
 include("utils.jl")
@@ -19,6 +15,7 @@ include("optimize.jl")
 
 # Renderers
 include("renderers/blinnphong.jl")
+include("renderers/rasterizer.jl")
 
 # Image Utilities
 include("imutils.jl")
