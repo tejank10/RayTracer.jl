@@ -143,7 +143,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
         col = get_color(triangle, pt, Val(:diffuse))
 
-        idx = x_arr .+ (y_arr .- 1) .* height
+        idx = (x_arr .- 1) .* height .+ y_arr
     
         frame_buffer = place_idx!(frame_buffer, col, idx)
     end 
