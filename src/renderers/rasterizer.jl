@@ -53,8 +53,8 @@ end
 
 function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                    world_to_camera, top, right, bottom, left) where {T}
-    width = cam.fixedparams.width
-    height = cam.fixedparams.height
+    width = cam.fixedparams.height
+    height = cam.fixedparams.width
     
     frame_buffer = Vec3(zeros(eltype(T), width * height))
     depth_buffer = fill(eltype(T)(Inf), width, height)
@@ -143,7 +143,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
         col = get_color(triangle, pt, Val(:diffuse))
 
-        idx = x_arr .+ (y_arr .- 1) .* width
+        idx = x_arr .+ (y_arr .- 1) .* height
     
         frame_buffer = place_idx!(frame_buffer, col, idx)
     end 
