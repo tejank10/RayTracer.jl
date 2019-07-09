@@ -87,8 +87,8 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         y = y₁:y₂
         x = x₁:x₂
 
-        x_space = repeat(collect(y), inner = length(y))
-        y_space = repeat(collect(x), outer = length(x))
+        x_space = repeat(collect(x), inner = length(y))
+        y_space = repeat(collect(y), outer = length(x))
           
         w1_arr = Float32[]
         w2_arr = Float32[]
@@ -100,7 +100,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         y_vec = y_space .+ 0.5f0
         x_vec = x_space .+ 0.5f0
 
-        pixel = Vec3(y_vec, x_vec, zeros(eltype(y_vec), length(x) * length(y)))
+        pixel = Vec3(x_vec, y_vec, zeros(eltype(y_vec), length(x) * length(y)))
         w1 = edge_function_vector(v2_raster, v3_raster, pixel)
         w2 = edge_function_vector(v3_raster, v1_raster, pixel)
         w3 = edge_function_vector(v1_raster, v2_raster, pixel)
