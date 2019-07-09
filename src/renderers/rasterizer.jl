@@ -87,8 +87,8 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         y = y₁:y₂
         x = x₁:x₂
 
-        y_space = repeat(collect(y), inner = length(x))
-        x_space = repeat(collect(x), outer = length(y))
+        x_space = repeat(collect(y), inner = length(y))
+        y_space = repeat(collect(x), outer = length(x))
           
         w1_arr = Float32[]
         w2_arr = Float32[]
