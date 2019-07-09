@@ -132,7 +132,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
              (v2_camera.x[] / -v2_camera.z[]) .* w2_arr .+
              (v3_camera.x[] / -v3_camera.z[]) .* w3_arr
         
-        py = (v1_camera.y[] / -v1_camhttps://asia.nikkei.com/Business/Companies/Japanese-curry-chain-tries-to-sell-Indians-their-own-creationera.z[]) .* w1_arr .+
+        py = (v1_camera.y[] / -v1_camera.z[]) .* w1_arr .+
              (v2_camera.y[] / -v2_camera.z[]) .* w2_arr .+
              (v3_camera.y[] / -v3_camera.z[]) .* w3_arr
 
