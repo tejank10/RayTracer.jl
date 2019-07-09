@@ -57,7 +57,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
     height = cam.fixedparams.width
     
     frame_buffer = Vec3(zeros(eltype(T), width * height))
-    depth_buffer = fill(eltype(T)(Inf), width, height)
+    depth_buffer = fill(eltype(T)(Inf), height, width)
 
     for triangle in scene
         v1_camera = world2camera(triangle.v1, world_to_camera)
