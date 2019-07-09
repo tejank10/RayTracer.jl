@@ -79,10 +79,10 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         area = edge_function(v1_raster, v2_raster, v3_raster)
 
         # Loop over only the covered pixels
-        x₁ = max(     1, Int(floor(xmin)+1))
-        x₂ = min( width, Int(floor(xmax)+1))
-        y₁ = max(     1, Int(floor(ymin)+1))
-        y₂ = min(height, Int(floor(ymax)+1))
+        x₁ = max(     1, Int(ceil(xmin)))
+        x₂ = min( width, Int(ceil(xmax)))
+        y₁ = max(     1, Int(ceil(ymin)))
+        y₂ = min(height, Int(ceil(ymax)))
 
         y = y₁:y₂
         x = x₁:x₂
@@ -100,7 +100,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         y_vec = y_space .+ 0.5f0
         x_vec = x_space .+ 0.5f0
 
-        pixel = Vec3(x_vec, y_vec, zeros(eltype(y_vec), length(x) * length(y)))
+        pixel = Vec3(x_vec, y_vec, zeros(eltype(x_vec), length(x) * length(y)))
         w1 = edge_function_vector(v2_raster, v3_raster, pixel)
         w2 = edge_function_vector(v3_raster, v1_raster, pixel)
         w3 = edge_function_vector(v1_raster, v2_raster, pixel)
@@ -143,7 +143,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
         col = get_color(triangle, pt, Val(:diffuse))
 
-        idx = (x_arr .- 1) * height .+ y_arr
+        idx = x_arr .+ (y_arr .- 1) .* height
     
         frame_buffer = place_idx!(frame_buffer, col, idx)
     end 
