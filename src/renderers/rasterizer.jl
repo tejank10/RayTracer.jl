@@ -100,7 +100,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         y_vec = y_space .+ 0.5f0
         x_vec = x_space .+ 0.5f0
 
-        pixel = Vec3(x_vec, y_vec, zeros(eltype(x_vec), length(x) * length(y)))
+        pixel = Vec3(y_vec, x_vec, zeros(eltype(y_vec), length(x) * length(y)))
         w1 = edge_function_vector(v2_raster, v3_raster, pixel)
         w2 = edge_function_vector(v3_raster, v1_raster, pixel)
         w3 = edge_function_vector(v1_raster, v2_raster, pixel)
