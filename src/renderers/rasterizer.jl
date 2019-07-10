@@ -116,38 +116,29 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
                 if depth_val < depth_buffer[y_val*width+x_val+1]
                     update_index!(depth_buffer, y_val*width+x_val+1, depth_val)
-                    push!(w1_arr, w1_val)
-                    push!(w2_arr, w2_val)
-                    push!(w3_arr, w3_val)
-                    push!(depth, depth_val)
-                    push!(x_arr, x_val)
-                    push!(y_arr, y_val)
+
+                    px = (v1_camera.x[] / -v1_camera.z[]) .* w1_val .+
+                         (v2_camera.x[] / -v2_camera.z[]) .* w2_val .+
+                         (v3_camera.x[] / -v3_camera.z[]) .* w3_val
+
+                    py = (v1_camera.y[] / -v1_camera.z[]) .* w1_val .+
+                         (v2_camera.y[] / -v2_camera.z[]) .* w2_val .+
+                         (v3_camera.y[] / -v3_camera.z[]) .* w3_val
+
+                    # Passing these gradients as 1.0f0 is incorrect
+                    pt = Zygote.hook(Δ -> Vec3([1.0f0 for _ in pt.x]),
+                                     camera2world(Vec3(px, py, ones(Float32, length(px)) * -1) * depth_val,
+                                                  camera_to_world))
+
+                    col = get_color(triangle, pt, Val(:diffuse))
+
+                    idx = y_val .* width .+ x_val .+ 1
+
+                    frame_buffer = place_idx!(frame_buffer, col, idx)
                 end
             end
         end
-
-        length(w1_arr) == 0 && continue
-
-        px = (v1_camera.x[] / -v1_camera.z[]) .* w1_arr .+
-             (v2_camera.x[] / -v2_camera.z[]) .* w2_arr .+
-             (v3_camera.x[] / -v3_camera.z[]) .* w3_arr
-
-        py = (v1_camera.y[] / -v1_camera.z[]) .* w1_arr .+
-             (v2_camera.y[] / -v2_camera.z[]) .* w2_arr .+
-             (v3_camera.y[] / -v3_camera.z[]) .* w3_arr
-
-        # Passing these gradients as 1.0f0 is incorrect
-        pt = Zygote.hook(Δ -> Vec3([1.0f0 for _ in pt.x]),
-                         camera2world(Vec3(px, py, ones(Float32, length(px)) * -1) * depth,
-                                      camera_to_world))
-
-        col = get_color(triangle, pt, Val(:diffuse))
-
-        idx = y_arr * width .+ x_arr .+ 1
-
-        frame_buffer = place_idx!(frame_buffer, col, idx)
     end
 
     return frame_buffer
 end
-
