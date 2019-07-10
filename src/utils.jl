@@ -8,7 +8,7 @@ export Vec3, rgb, clip01
 
 """
 This is the central type for RayTracer. All of the other types are defined building
-upon this.                                                      
+upon this.
 
 All the fields of the Vec3 instance contains `Array`s. This ensures that we can collect
 the gradients w.r.t the fields using the `Params` API of Zygote.
@@ -40,7 +40,7 @@ struct Vec3{T<:AbstractArray}
         @assert size(x) == size(y) == size(z)
         new{AbstractArray{T, ndims(x)}}(T.(x), T.(y), T.(z))
     end
-end    
+end
 
 Vec3(a::T) where {T<:Real} = Vec3([a], [a], [a])
 
@@ -66,7 +66,7 @@ for op in (:+, :*, :-)
         @inline function $(op)(a::Vec3, b::Vec3)
             return Vec3(broadcast($(op), a.x, b.x),
                         broadcast($(op), a.y, b.y),
-                        broadcast($(op), a.z, b.z)) 
+                        broadcast($(op), a.z, b.z))
         end
     end
 end
@@ -78,7 +78,7 @@ for op in (:+, :*, :-, :/, :%)
                         broadcast($(op), a.y, b),
                         broadcast($(op), a.z, b))
         end
-        
+
         @inline function $(op)(b, a::Vec3)
             return Vec3(broadcast($(op), a.x, b),
                         broadcast($(op), a.y, b),
@@ -120,7 +120,7 @@ Constructs a new `Vec3` with array length equal to that of `cond` filled with ze
 Then it fills the positions corresponding to the `true` values of `cond` with the values
 in `a`.
 
-The length of each array in `a` must be equal to the number of `true` values in the 
+The length of each array in `a` must be equal to the number of `true` values in the
 `cond` array.
 """
 function place(a::Vec3, cond)
@@ -159,7 +159,7 @@ end
 # ----- #
 
 """
-`rgb` is an alias for `Vec3`. It makes more sense to use this while defining colors. 
+`rgb` is an alias for `Vec3`. It makes more sense to use this while defining colors.
 """
 rgb = Vec3
 
@@ -183,10 +183,10 @@ are `true`.
 ```julia
 julia> a = rand(4)
 4-element Array{Float64,1}:
- 0.7201598586590607 
- 0.5829718552672327 
- 0.1177531256556108 
- 0.3083157590071375 
+ 0.7201598586590607
+ 0.5829718552672327
+ 0.1177531256556108
+ 0.3083157590071375
 
 julia> cond = a .> 0.5
 4-element BitArray{1}:
@@ -222,14 +222,20 @@ function camera2world(point::Vec3, camera_to_world)
     return Vec3(result[:, 1], result[:, 2], result[:, 3])
 end
 
-camera2world(point::Array, camera_to_world) = point * camera_to_world[1:3, 1:3] .+ camera_to_world[4, 1:3]'
-    
+function camera2world(point::Array, camera_to_world)
+    out = point * camera_to_world[1:3, 1:3] .+ camera_to_world[4, 1:3]'
+    return out ./ (point * camera_to_world[:, 1:3] .+ camera_to_world[4, 4])
+end
+
 function world2camera(point::Vec3, world_to_camera)
     result = world2camera([point.x point.y point.z], world_to_camera)
     return Vec3(result[:, 1], result[:, 2], result[:, 3])
 end
 
-world2camera(point::Array, world_to_camera) = point * world_to_camera[1:3, 1:3] .+ world_to_camera[4, 1:3]'
+function world2camera(point::Array, world_to_camera)
+    out = point * world_to_camera[1:3, 1:3] .+ world_to_camera[4, 1:3]'
+    return out ./ (point * world_to_camera[:, 1:3] .+ world_to_camera[4, 4])
+end
 
 # ----------------- #
 # - Helper Macros - #
