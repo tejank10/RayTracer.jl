@@ -135,7 +135,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                     col = Vec3([1f0])
                     idx = y_val .* width .+ x_val .+ 1
 
-                    frame_buffer = update_index!(frame_buffer, col, idx)
+                    frame_buffer = place_idx!(frame_buffer, col, idx)
                 end
             end
         end
