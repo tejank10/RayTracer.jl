@@ -365,6 +365,10 @@ end
 
 @nograd fill
 
+@nograd function update_index!(arr, i, val)
+    arr[i] = val
+end
+
 @nograd function update_index!(arr, i, j, val)
     arr[i, j] = val
 end 
