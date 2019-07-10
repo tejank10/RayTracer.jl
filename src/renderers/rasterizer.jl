@@ -74,15 +74,15 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         xmin, xmax = extrema([v1_raster.x[], v2_raster.x[], v3_raster.x[]])
         ymin, ymax = extrema([v1_raster.y[], v2_raster.y[], v3_raster.y[]])
 
-        (xmin > height || xmax < 1 || ymin > width || ymax < 1) && continue
+        (xmin > width || xmax < 1 || ymin > height || ymax < 1) && continue
 
         area = edge_function(v1_raster, v2_raster, v3_raster)
 
         # Loop over only the covered pixels
-        x₁ = max(     1, Int(floor(xmin)+1))
-        x₂ = min(height, Int(floor(xmax)+1))
+        x₁ = max      1, Int(floor(xmin)+1))
+        x₂ = min( width, Int(floor(xmax)+1))
         y₁ = max(     1, Int(floor(ymin)+1))
-        y₂ = min( width, Int(floor(ymax)+1))
+        y₂ = min(height, Int(floor(ymax)+1))
 
         y = y₁:y₂
         x = x₁:x₂
@@ -105,17 +105,17 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         w2 = edge_function_vector(v3_raster, v1_raster, pixel)
         w3 = edge_function_vector(v1_raster, v2_raster, pixel)
 
-        for (w1_val, w2_val, w3_val, x_val, y_val) in zip(w1, w2, w3, x_space, y_space)     
+        for (w1_val, w2_val, w3_val, y_val, x_val) in zip(w1, w2, w3, y_space, x_space)     
             if w1_val >= 0 && w2_val >= 0 && w3_val >= 0
                 w1_val = w1_val / area
                 w2_val = w2_val / area
                 w3_val = w3_val / area
 
-                depth_val = 1 / (w1_val / v1_raster.z[] + w2_val / v2_raster.z[] +
-                                 w3_val / v3_raster.z[])
+                depth_val = 1 / (w1_val * v1_raster.z[] + w2_val * v2_raster.z[] +
+                                 w3_val * v3_raster.z[])
 
-                if depth_val < depth_buffer[(x_val-1)*width + y_val]
-                    depth_buffer[(x_val-1)*width + y_val] = depth_val
+                if depth_val < depth_buffer[(y_val-1)*width + x_val]
+                    depth_buffer[(y_val-1)*width + x_val] = depth_val
                     push!(w1_arr, w1_val)
                     push!(w2_arr, w2_val)
                     push!(w3_arr, w3_val)
@@ -143,7 +143,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
         col = get_color(triangle, pt, Val(:diffuse))
 
-        idx = (x_arr .- 1) * width .+ y_arr
+        idx = (y_arr .- 1) * width .+ x_arr
     
         frame_buffer = place_idx!(frame_buffer, col, idx)
     end 
