@@ -224,7 +224,7 @@ end
 
 function camera2world(point::Array, camera_to_world)
     out = point * camera_to_world[1:3, 1:3] .+ camera_to_world[4, 1:3]'
-    return out ./ (point * camera_to_world[:, 1:3] .+ camera_to_world[4, 4])
+    return out ./ (point * camera_to_world[4, 1:3] .+ camera_to_world[4, 4])
 end
 
 function world2camera(point::Vec3, world_to_camera)
@@ -234,7 +234,7 @@ end
 
 function world2camera(point::Array, world_to_camera)
     out = point * world_to_camera[1:3, 1:3] .+ world_to_camera[4, 1:3]'
-    return out ./ (point * world_to_camera[:, 1:3] .+ world_to_camera[4, 4])
+    return out ./ (point * world_to_camera[4, 1:3] .+ world_to_camera[4, 4])
 end
 
 # ----------------- #
