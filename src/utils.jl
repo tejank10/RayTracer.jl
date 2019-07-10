@@ -140,9 +140,9 @@ function place(a::Array, cond, val = 0)
 end
 
 function place_idx!(a::Vec3, b::Vec3, idx)
-    a.x[idx] .= b.x
-    a.y[idx] .= b.y
-    a.z[idx] .= b.z
+    a.x[idx:idx] .= b.x
+    a.y[idx:idx] .= b.y
+    a.z[idx:idx] .= b.z
     return a
 end
 
