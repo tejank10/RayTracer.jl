@@ -127,7 +127,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
                     # Passing these gradients as 1.0f0 is incorrect
                     pt = Zygote.hook(Δ -> Vec3([1.0f0 for _ in pt.x]),
-                                     camera2world(Vec3(px, py, ones(Float32, length(px)) * -1) * depth_val,
+                                     camera2world(Vec3(px*depth_val, py*depth_val, -depth_val),
                                                   camera_to_world))
 
                     col = get_color(triangle, pt, Val(:diffuse))
