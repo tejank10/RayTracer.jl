@@ -53,11 +53,11 @@ end
 
 function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                    world_to_camera, top, right, bottom, left) where {T}
-    width = cam.fixedparams.height
-    height = cam.fixedparams.width
+    width = cam.fixedparams.width
+    height = cam.fixedparams.height
     
     frame_buffer = Vec3(zeros(eltype(T), width * height))
-    depth_buffer = fill(eltype(T)(Inf), height, width)
+    depth_buffer = fill(eltype(T)(Inf), width * height)
 
     for triangle in scene
         v1_camera = world2camera(triangle.v1, world_to_camera)
@@ -79,10 +79,10 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         area = edge_function(v1_raster, v2_raster, v3_raster)
 
         # Loop over only the covered pixels
-        x₁ = max(     1, Int(ceil(xmin)))
-        x₂ = min( width, Int(ceil(xmax)))
-        y₁ = max(     1, Int(ceil(ymin)))
-        y₂ = min(height, Int(ceil(ymax)))
+        x₁ = max(     1, Int(floor(xmin)+1))
+        x₂ = min( width, Int(floor(xmax)+1))
+        y₁ = max(     1, Int(floor(ymin)+1))
+        y₂ = min(height, Int(floor(ymax)+1))
 
         y = y₁:y₂
         x = x₁:x₂
@@ -114,8 +114,8 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                 depth_val = 1 / (w1_val / v1_raster.z[] + w2_val / v2_raster.z[] +
                                  w3_val / v3_raster.z[])
 
-                if depth_val < depth_buffer[y_val, x_val]
-                    update_index!(depth_buffer, y_val, x_val, depth_val)
+                if depth_val < depth_buffer[(y_val-1)*width + x_val]
+                    depth_buffer[(y_val-1)*width + x_val] = depth_val
                     push!(w1_arr, w1_val)
                     push!(w2_arr, w2_val)
                     push!(w3_arr, w3_val)
@@ -143,7 +143,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
         col = get_color(triangle, pt, Val(:diffuse))
 
-        idx = x_arr .+ (y_arr .- 1) .* height
+        idx = x_arr .+ (y_arr .- 1) .* width
     
         frame_buffer = place_idx!(frame_buffer, col, idx)
     end 
