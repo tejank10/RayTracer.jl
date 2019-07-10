@@ -130,7 +130,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                                      camera2world(Vec3(px*depth_val, py*depth_val, -depth_val),
                                                   camera_to_world))
 
-                    col = get_color(triangle, pt, Val(:diffuse))=#
+                    col = get_color(triangle, pt, Val(:diffuse))
                     idx = y_val .* width .+ x_val .+ 1
 
                     frame_buffer = place_idx!(frame_buffer, col, idx)
