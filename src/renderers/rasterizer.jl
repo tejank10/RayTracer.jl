@@ -131,7 +131,10 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                                                   camera_to_world))
 
                     col = get_color(triangle, pt, Val(:diffuse))=#
+
                     col = Vec3([1f0])
+                    idx = y_val .* width .+ x_val .+ 1
+
                     frame_buffer = update_index!(frame_buffer, idx, col)
                 end
             end
