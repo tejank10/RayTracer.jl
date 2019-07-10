@@ -115,7 +115,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                                  w3_val / v3_raster.z[])
 
                 if depth_val < depth_buffer[(x_val-1)*width + y_val]
-                    depth_buffer[(y_val-1)*height + x_val] = depth_val
+                    depth_buffer[(x_val-1)*width + y_val] = depth_val
                     push!(w1_arr, w1_val)
                     push!(w2_arr, w2_val)
                     push!(w3_arr, w3_val)
