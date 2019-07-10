@@ -114,7 +114,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
                 depth_val = 1 / (w1_val / v1_raster.z[] + w2_val / v2_raster.z[] +
                                  w3_val / v3_raster.z[])
 
-                if depth_val < depth_buffer[(y_val-1)*height + x_val]
+                if depth_val < depth_buffer[(x_val-1)*width + y_val]
                     depth_buffer[(y_val-1)*height + x_val] = depth_val
                     push!(w1_arr, w1_val)
                     push!(w2_arr, w2_val)
@@ -143,7 +143,7 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
         col = get_color(triangle, pt, Val(:diffuse))
 
-        idx = x_arr .+ (y_arr .- 1) .* height
+        idx = (x_arr .- 1) * width .+ y_arr
     
         frame_buffer = place_idx!(frame_buffer, col, idx)
     end 
