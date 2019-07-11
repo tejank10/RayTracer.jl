@@ -45,9 +45,8 @@ end
 
 function rasterize(cam::Camera, scene::Vector)
     top, right, bottom, left = compute_screen_coordinates(cam, film_aperture)
-    #NOTE: interchange w2c and c2w while reverting back to original version
-    world_to_camera = get_transformation_matrix(cam)
-    camera_to_world = inv(world_to_camera)
+    camera_to_world = get_transformation_matrix(cam)
+    world_to_camera = inv(camera_to_world)
     return rasterize(cam, scene, camera_to_world, world_to_camera, top,
                      right, bottom, left)
 end
