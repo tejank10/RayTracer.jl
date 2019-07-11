@@ -29,7 +29,7 @@ Base.show(io::IO, cam::Camera) =
     print(io, "CAMERA Configuration:\n    Lookfrom - ", cam.lookfrom,
           "\n    Lookat - ", cam.lookat, "\n    Field of View - ", cam.vfov[],
           "\n    Focus - ", cam.focus[], "\n", cam.fixedparams)
-                                       
+
 @diffops Camera
 
 function Camera(lookfrom::Vec3{T}, lookat::Vec3{T}, vup::Vec3{T}, vfov::R,
@@ -68,21 +68,24 @@ function get_primary_rays(c::Camera)
 
     s = repeat((collect(0:(width - 1)) .+ 0.5f0) ./ width, outer = height)
     t = repeat((collect((height - 1):-1:0) .+ 0.5f0) ./ height, inner = width)
-    
+
     direction = normalize(llc + s * hori + t * vert - origin)
 
     return (origin, direction)
 end
 
 function get_transformation_matrix(c::Camera{T}) where {T}
-    forward = normalize(c.lookfrom - c.lookat)
-    right = normalize(cross(c.fixedparams.vup, forward))
-    up = normalize(cross(forward, right))
-
-    return [     right.x[]      right.y[]      right.z[] zero(eltype(T));
-                    up.x[]         up.y[]         up.z[] zero(eltype(T));
-               forward.x[]    forward.y[]    forward.z[] zero(eltype(T));
-            c.lookfrom.x[] c.lookfrom.y[] c.lookfrom.z[]  one(eltype(T))]
+    #forward = normalize(c.lookfrom - c.lookat)
+    #right = normalize(cross(c.fixedparams.vup, forward))
+    #up = normalize(cross(forward, right))
+    return [ 0.707107f0 -0.331295f0   0.624695f0 0f0;
+                    0f0  0.883452f0   0.468521f0 0f0;
+            -0.707107f0 -0.331295f0   0.624695f0 0f0;
+             -1.63871f0 -5.747777f0 -40.400412f0 1f0]
+    #return [     right.x[]      right.y[]      right.z[] zero(eltype(T));
+    #                up.x[]         up.y[]         up.z[] zero(eltype(T));
+    #           forward.x[]    forward.y[]    forward.z[] zero(eltype(T));
+    #        c.lookfrom.x[] c.lookfrom.y[] c.lookfrom.z[]  one(eltype(T))]
 end
 
 function compute_screen_coordinates(c::Camera, film_aperture::Tuple,
@@ -91,10 +94,10 @@ function compute_screen_coordinates(c::Camera, film_aperture::Tuple,
     height = c.fixedparams.height
     vfov = c.vfov[]
     focus = c.focus[]
-    
+
     film_aspect_ratio = film_aperture[1] / film_aperture[2]
     device_aspect_ratio = width / height
-    
+
     top = ((film_aperture[2] * inch_to_mm / 2) / focus)
     right = ((film_aperture[1] * inch_to_mm / 2) / focus)
 
