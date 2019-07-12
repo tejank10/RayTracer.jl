@@ -16,10 +16,10 @@ edge_function_vector(pt1::Vec3, pt2::Vec3, point::Vec3) =
     ((point.x .- pt1.x) .* (pt2.y - pt1.y) .- (point.y .- pt1.y) .* (pt2.x .- pt1.x))
 
 function convert2raster(vertex_world::Vec3, world_to_camera, left::Real, right::Real,
-                        top::Real, bottom::Real, width::Int, height::Int)
+                        top::Real, bottom::Real, near::Real, width::Int, height::Int)
     vertex_camera = world2camera(vertex_world, world_to_camera)
 
-    return convert2raster(vertex_camera, left, right, top, bottom, width, height)
+    return convert2raster(vertex_camera, left, right, top, bottom, near, width, height)
 end
 
 function convert2raster(vertex_camera::Vec3{T}, left::Real, right::Real, top::Real, bottom::Real,
