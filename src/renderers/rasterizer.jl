@@ -29,11 +29,11 @@ function convert2raster(vertex_camera::Vec3{T}, left::Real, right::Real, top::Re
     vertex_screen = (x = near * vertex_camera.x[] / -vertex_camera.z[],
                      y = near * vertex_camera.y[] / -vertex_camera.z[])
 
-    vertex_NDC = (x = outtype((2 * vertex_screen.x - right - left) / (right - left)),
-                  y = outtype((2 * vertex_screen.y - top - bottom) / (top - bottom)))
+    vertex_NDC = (x = outtype((2f0 * vertex_screen.x - right - left) / (right - left)),
+                  y = outtype((2f0 * vertex_screen.y - top - bottom) / (top - bottom)))
 
-    vertex_raster = Vec3([(vertex_NDC.x + 1) / 2 * outtype(width)],
-                         [(1 - vertex_NDC.y) / 2 * outtype(height)],
+    vertex_raster = Vec3([(vertex_NDC.x + 1f0) / 2f0 * outtype(width)],
+                         [(1f0 - vertex_NDC.y) / 2f0 * outtype(height)],
                          -vertex_camera.z)
 
     return vertex_raster
@@ -44,7 +44,7 @@ end
 # ---------- #
 
 function rasterize(cam::Camera, scene::Vector,
-                   near_clipping_plane::Real=1f0, far_clipping_plane::Real=Inf)
+                   near_clipping_plane::Real=1f0, far_clipping_plane::Real=Float32(Inf))
     top, right, bottom, left = compute_screen_coordinates(cam, film_aperture, near_clipping_plane)
     camera_to_world = get_transformation_matrix(cam)
     world_to_camera = inv(camera_to_world)
@@ -52,7 +52,7 @@ function rasterize(cam::Camera, scene::Vector,
                      camera_to_world, world_to_camera, top, right, bottom, left)
 end
 
-function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane, 
+function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
                    far_clipping_plane, camera_to_world, world_to_camera,
                    top, right, bottom, left) where {T}
     width = cam.fixedparams.width
