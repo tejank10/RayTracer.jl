@@ -86,7 +86,7 @@ function get_transformation_matrix(c::Camera{T}) where {T}
 end
 
 function compute_screen_coordinates(c::Camera, film_aperture::Tuple,
-                                    inch_to_mm::Real = 25.4)
+                                    inch_to_m::Real = 0.0254)
     width = c.fixedparams.width
     height = c.fixedparams.height
     vfov = c.vfov[]
@@ -95,8 +95,8 @@ function compute_screen_coordinates(c::Camera, film_aperture::Tuple,
     film_aspect_ratio = film_aperture[1] / film_aperture[2]
     device_aspect_ratio = width / height
 
-    top = ((film_aperture[2] * inch_to_mm / 2) / focus)
-    right = ((film_aperture[1] * inch_to_mm / 2) / focus)
+    top = ((film_aperture[2] * inch_to_m / 2) / focus)
+    right = ((film_aperture[1] * inch_to_m / 2) / focus)
 
     xscale = 1
     yscale = 1
