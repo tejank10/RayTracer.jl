@@ -23,11 +23,11 @@ function convert2raster(vertex_world::Vec3, world_to_camera, left::Real, right::
 end
 
 function convert2raster(vertex_camera::Vec3{T}, left::Real, right::Real, top::Real, bottom::Real,
-                        width::Int, height::Int) where {T}
+                        near::Real, width::Int, height::Int) where {T}
     outtype = eltype(T)
 
-    vertex_screen = (x = vertex_camera.x[] / -vertex_camera.z[],
-                     y = vertex_camera.y[] / -vertex_camera.z[])
+    vertex_screen = (x = near * vertex_camera.x[] / -vertex_camera.z[],
+                     y = near * vertex_camera.y[] / -vertex_camera.z[])
 
     vertex_NDC = (x = outtype((2 * vertex_screen.x - right - left) / (right - left)),
                   y = outtype((2 * vertex_screen.y - top - bottom) / (top - bottom)))
@@ -43,8 +43,8 @@ end
 # Rasterizer #
 # ---------- #
 
-function rasterize(cam::Camera, scene::Vector)
-    top, right, bottom, left = compute_screen_coordinates(cam, film_aperture)
+function rasterize(cam::Camera, scene::Vector, near_clipping_plane::Real=0.04f0)
+    top, right, bottom, left = compute_screen_coordinates(cam, film_aperture, near_clipping_plane)
     camera_to_world = get_transformation_matrix(cam)
     world_to_camera = inv(camera_to_world)
     return rasterize(cam, scene, camera_to_world, world_to_camera, top,
@@ -66,9 +66,9 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
 
         normal = normalize(cross(v2_camera - v1_camera, v3_camera - v1_camera))
 
-        v1_raster = convert2raster(v1_camera, left, right, top, bottom, width, height)
-        v2_raster = convert2raster(v2_camera, left, right, top, bottom, width, height)
-        v3_raster = convert2raster(v3_camera, left, right, top, bottom, width, height)
+        v1_raster = convert2raster(v1_camera, left, right, top, bottom, near_clipping_plane, width, height)
+        v2_raster = convert2raster(v2_camera, left, right, top, bottom, near_clipping_plane, width, height)
+        v3_raster = convert2raster(v3_camera, left, right, top, bottom, near_clipping_plane, width, height)
 
         # Bounding Box
         xmin, xmax = extrema([v1_raster.x[], v2_raster.x[], v3_raster.x[]])
