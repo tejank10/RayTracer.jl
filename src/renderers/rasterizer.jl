@@ -79,16 +79,16 @@ function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
         area = edge_function(v1_raster, v2_raster, v3_raster)
 
         # Loop over only the covered pixels
-        x₁ = max(     1, Int(floor(xmin))+1)
-        x₂ = min( width, Int(floor(xmax))+1)
-        y₁ = max(     1, Int(floor(ymin))+1)
-        y₂ = min(height, Int(floor(ymax))+1)
+        x₁ = max(       0, Int(floor(xmin)))
+        x₂ = min( width-1, Int(floor(xmax)))
+        y₁ = max(       0, Int(floor(ymin)))
+        y₂ = min(height-1, Int(floor(ymax)))
 
         y = y₁:y₂
         x = x₁:x₂
         for y_val in y₁:y₂
             for x_val in x₁:x₂
-                pixel = Vec3([x_val+0.5f0], [y_val+0.5f0], zeros(Float32, 1))
+                pixel = Vec3([x_val+0.5f0], zeros(Float32, 1), [y_val+0.5f0])
                 w1_val = edge_function(v2_raster, v3_raster, pixel)
                 w2_val = edge_function(v3_raster, v1_raster, pixel)
                 w3_val = edge_function(v1_raster, v2_raster, pixel)
