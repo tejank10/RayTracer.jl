@@ -43,21 +43,23 @@ end
 # Rasterizer #
 # ---------- #
 
-function rasterize(cam::Camera, scene::Vector, near_clipping_plane::Real=0.04f0)
+function rasterize(cam::Camera, scene::Vector,
+                   near_clipping_plane::Real=1f0, far_clipping_plane::Real=Inf)
     top, right, bottom, left = compute_screen_coordinates(cam, film_aperture, near_clipping_plane)
     camera_to_world = get_transformation_matrix(cam)
     world_to_camera = inv(camera_to_world)
-    return rasterize(cam, scene, camera_to_world, world_to_camera, top,
-                     right, bottom, left)
+    return rasterize(cam, scene, near_clipping_plane, far_clipping_plane,
+                     camera_to_world, world_to_camera, top, right, bottom, left)
 end
 
-function rasterize(cam::Camera{T}, scene::Vector, camera_to_world,
-                   world_to_camera, top, right, bottom, left) where {T}
+function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane, 
+                   far_clipping_plane, camera_to_world, world_to_camera,
+                   top, right, bottom, left) where {T}
     width = cam.fixedparams.width
     height = cam.fixedparams.height
 
     frame_buffer = Vec3(zeros(eltype(T), width * height))
-    depth_buffer = fill(eltype(T)(Inf), width * height)
+    depth_buffer = fill(eltype(T)(far_clipping_plane), width * height)
 
     for triangle in scene
         v1_camera = world2camera(triangle.v1, world_to_camera)
