@@ -113,5 +113,5 @@ function compute_screen_coordinates(c::Camera, film_aperture::Tuple, z_near::Rea
     bottom = -top
     left = -right
 
-    return top, right, bottom, left
+    return Float32.((top, right, bottom, left))
 end
