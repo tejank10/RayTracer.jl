@@ -81,16 +81,16 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
         area = edge_function(v1_raster, v2_raster, v3_raster)
 
         # Loop over only the covered pixels
-        x₁ = max(       0, Int(floor(xmin)))
-        x₂ = min( width-1, Int(floor(xmax)))
-        y₁ = max(       0, Int(floor(ymin)))
-        y₂ = min(height-1, Int(floor(ymax)))
+        x₁ = max(     1, 1+Int(floor(xmin)))
+        x₂ = min( width, 1+Int(floor(xmax)))
+        y₁ = max(     1, 1+Int(floor(ymin)))
+        y₂ = min(height, 1+Int(floor(ymax)))
 
         y = y₁:y₂
         x = x₁:x₂
         for y_val in y₁:y₂
             for x_val in x₁:x₂
-                pixel = Vec3([x_val+0.5f0], [y_val+0.5f0], zeros(Float32, 1))
+                pixel = Vec3([x_val+0.5f0], [y_val+0.5f0], [0f0])
                 w1_val = edge_function(v2_raster, v3_raster, pixel)
                 w2_val = edge_function(v3_raster, v1_raster, pixel)
                 w3_val = edge_function(v1_raster, v2_raster, pixel)
@@ -103,8 +103,8 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
                     depth_val = 1 / (w1_val / v1_raster.z[] + w2_val / v2_raster.z[] +
                                      w3_val / v3_raster.z[])
 
-                    if depth_val < depth_buffer[y_val*width+x_val+1]
-                        update_index!(depth_buffer, y_val*width+x_val+1, depth_val)
+                    if depth_val < depth_buffer[(y_val-1)*width+x_val]
+                        update_index!(depth_buffer, (y_val-1)*width+x_val, depth_val)
 
                         px = (v1_camera.x[] / -v1_camera.z[]) .* w1_val .+
                              (v2_camera.x[] / -v2_camera.z[]) .* w2_val .+
@@ -120,7 +120,7 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
                                                       camera_to_world))
 
                         col = get_color(triangle, pt, Val(:diffuse))
-                        idx = y_val* width + x_val + 1
+                        idx = (y_val-1)*width+x_val
 
                         frame_buffer = place_idx!(frame_buffer, col, idx)
                     end
