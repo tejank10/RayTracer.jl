@@ -128,12 +128,6 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
             end
         end
     end
-
-    dbuff = []
-
-    for i in depth_buffer
-        push!(dbuff, (2f0 * near_clipping_plane) /
-        (far_clipping_plane + near_clipping_plane - i * (far_clipping_plane - near_clipping_plane)))
-    end
-    return Vec3(dbuff)
+    
+    return Vec3(min.(0f0, depth_buffer) ./ far_clipping_plane)
 end
