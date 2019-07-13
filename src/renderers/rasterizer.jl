@@ -129,5 +129,5 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
         end
     end
 
-    return frame_buffer
+    return Vec3(depth_buffer)
 end
