@@ -95,16 +95,18 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
                 w2_val = edge_function(v3_raster, v1_raster, pixel)
                 w3_val = edge_function(v1_raster, v2_raster, pixel)
 
-                if w1_val >= 0 && w2_val >= 0 && w3_val >= 0
+                if w1_val ≥ 0f0 && w2_val ≥ 0f0 && w3_val ≥ 0f0
                     w1_val = w1_val / area
                     w2_val = w2_val / area
                     w3_val = w3_val / area
 
-                    depth_val = 1 / (w1_val / v1_raster.z[] + w2_val / v2_raster.z[] +
+                    depth_val = 1f0 / (w1_val / v1_raster.z[] + w2_val / v2_raster.z[] +
                                      w3_val / v3_raster.z[])
 
-                    if depth_val < depth_buffer[(y_val-1)*width+x_val]
-                        update_index!(depth_buffer, (y_val-1)*width+x_val, depth_val)
+                    idx = (y_val-1)*width+x_val
+
+                    if depth_val < depth_buffer[idx]
+                        update_index!(depth_buffer, idx, depth_val)
 
                         px = (v1_camera.x[] / -v1_camera.z[]) .* w1_val .+
                              (v2_camera.x[] / -v2_camera.z[]) .* w2_val .+
@@ -120,7 +122,6 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
                                                       camera_to_world))
 
                         col = get_color(triangle, pt, Val(:diffuse))
-                        idx = (y_val-1)*width+x_val
 
                         frame_buffer = place_idx!(frame_buffer, col, idx)
                     end
@@ -129,5 +130,5 @@ function rasterize(cam::Camera{T}, scene::Vector, near_clipping_plane,
         end
     end
 
-    return frame_buffer, Vec3(min.(0f0, depth_buffer) ./ far_clipping_plane)
+    return frame_buffer
 end
